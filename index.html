@@ -361,7 +361,8 @@
     if (!save.sound || !window.speechSynthesis) return;
     try {
       speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text.replace(/[^\p{L}\p{N}，。！？、 ]/gu, ""));
+      // 語音引擎常把「多重」唸成 ㄔㄨㄥˊ；這個遊戲裡的「重」都唸 ㄓㄨㄥˋ，所以換成同音的「眾」來唸
+      const u = new SpeechSynthesisUtterance(text.replace(/[^\p{L}\p{N}，。！？、 ]/gu, "").replace(/重/g, "眾"));
       u.lang = "zh-TW"; u.rate = 0.95;
       speechSynthesis.speak(u);
     } catch (e) {}
