@@ -8,7 +8,7 @@
   /* 注音粉圓（ButTaiwan/bpmfvs，Apache 2.0 / OFL），只保留網站用到的字 */
   @font-face {
     font-family: "BpmfHuninn";
-    src: url("fonts/bpmf-huninn-subset.woff2?v=6") format("woff2");
+    src: url("fonts/bpmf-huninn-subset.woff2?v=7") format("woff2");
     font-display: swap;
   }
   :root {
@@ -288,16 +288,38 @@
   ];
   const ALL_WEIGHTS = [...G, ...[1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].map(k => k * KG)];
   const FREE_WEIGHTS = [...G, ...[1, 2, 5, 10, 100, 1000].map(k => k * KG)];
+  // 只在自由秤出現的東西
+  const EXTRA_ITEMS = [
+    { e: "🍬", n: "糖果", g: 5 },
+    { e: "🥟", n: "水餃", g: 20 },
+    { e: "🍞", n: "吐司", g: 30 },
+    { e: "🍫", n: "巧克力", g: 40 },
+    { e: "🍗", n: "雞腿", g: 150 },
+    { e: "🍙", n: "飯糰", g: 180 },
+    { e: "🍚", n: "白飯", g: 200 },
+    { e: "🧋", n: "珍珠奶茶", g: 700 },
+    { e: "📎", n: "迴紋針", g: 1 },
+    { e: "🖍️", n: "蠟筆", g: 5 },
+    { e: "🪥", n: "牙刷", g: 20 },
+    { e: "✂️", n: "剪刀", g: 40 },
+    { e: "🧼", n: "肥皂", g: 100 },
+    { e: "📱", n: "手機", g: 200 },
+    { e: "🧸", n: "泰迪熊", g: 250 },
+    { e: "👟", n: "運動鞋", g: 300 },
+    { e: "☂️", n: "雨傘", g: 400 },
+    { e: "💻", n: "筆電", g: 1500 },
+  ];
   // 自由秤：東西按分類放
   const CATS = [
     { icon: "🍎", name: "水果", list: ["草莓", "蘋果", "芒果", "水梨", "椰子", "鳳梨", "小玉西瓜", "大西瓜"] },
     { icon: "🐾", name: "動物", list: ["麻雀", "青蛙", "倉鼠", "領角鴞", "松鼠", "刺蝟", "母雞", "兔子", "貓咪", "小狗"] },
-    { icon: "🥕", name: "食物", list: ["餅乾", "雞蛋", "紅蘿蔔", "果汁", "地瓜", "一瓶牛奶"] },
-    { icon: "🎒", name: "用品", list: ["鉛筆", "鑰匙", "襪子", "網球", "故事書", "書包"] },
+    { icon: "🥕", name: "食物", list: ["糖果", "餅乾", "水餃", "吐司", "巧克力", "雞蛋", "紅蘿蔔", "雞腿", "飯糰", "白飯", "果汁", "地瓜", "珍珠奶茶", "一瓶牛奶"] },
+    { icon: "🎒", name: "用品", list: ["迴紋針", "蠟筆", "鉛筆", "鑰匙", "牙刷", "襪子", "剪刀", "網球", "肥皂", "手機", "泰迪熊", "運動鞋", "故事書", "雨傘", "筆電", "書包"] },
     { icon: "🚗", name: "交通工具", list: ["滑板", "滑板車", "腳踏車", "機車", "汽車"] },
   ];
   const ALL_ITEMS = [];
   LEVELS.forEach(l => l.items.forEach(it => { if (!it.c && !ALL_ITEMS.some(x => x.n === it.n)) ALL_ITEMS.push(it); }));
+  ALL_ITEMS.push(...EXTRA_ITEMS);
   const FREE_GROUPS = CATS.map(c => ({ icon: c.icon, name: c.name, items: c.list.map(n => ALL_ITEMS.find(x => x.n === n)).filter(Boolean) }));
   const others = ALL_ITEMS.filter(it => !CATS.some(c => c.list.includes(it.n)));
   if (others.length) FREE_GROUPS.push({ icon: "📦", name: "其他", items: others });
