@@ -8,7 +8,7 @@
   /* 注音粉圓（ButTaiwan/bpmfvs，Apache 2.0 / OFL），只保留網站用到的字 */
   @font-face {
     font-family: "BpmfHuninn";
-    src: url("fonts/bpmf-huninn-subset.woff2?v=5") format("woff2");
+    src: url("fonts/bpmf-huninn-subset.woff2?v=6") format("woff2");
     font-display: swap;
   }
   :root {
@@ -196,7 +196,7 @@
 // 注音破音字：在字後面加「異體選擇符」，讓注音字型顯示輕聲（例如 鑰匙 的 匙 唸 ˙ㄕ）
 (() => {
   const NEUTRAL = "\u{E01E1}";
-  const RULES = ["鑰匙", "盤子", "襪子", "東西", "椰子"].map(w =>
+  const RULES = ["鑰匙", "盤子", "襪子", "東西", "椰子", "下子"].map(w =>
     [new RegExp(`(${w[0]})(${w[1]})(?![\\u{E01E0}-\\u{E01EF}])`, "gu"), `$1$2${NEUTRAL}`]);
   const fix = node => {
     if (node.nodeType === 3) {
@@ -509,11 +509,74 @@
       locked = true;
       balanceTimer = setTimeout(askSum, 1100);
     } else {
-      if (!left.length && !right.length) return setMsg("把東西和砝碼放到兩邊，比比看哪邊比較重！");
-      if (!left.length || !right.length) return setMsg(R > L ? "右邊比較重，所以右邊沉下去了！" : "左邊比較重，所以左邊沉下去了！");
-      if (L === R) { setMsg("🎉 平衡了！左右兩邊一樣重！", true); yay(); return; }
-      setMsg(R > L ? "右邊比較重 ⬇️ 左邊比較輕 ⬆️" : "左邊比較重 ⬇️ 右邊比較輕 ⬆️");
+      freeMsg(L, R);
     }
+  }
+
+  // ---------- 自由秤的活潑提示 ----------
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  // 這一邊叫什麼名字：只有一種東西就說它的名字
+  function sideName(arr, side) {
+    const objs = arr.filter(x => x.type === "o"), hasW = arr.some(x => x.type === "w");
+    const names = [...new Set(objs.map(x => x.item.n))];
+    if (!objs.length) return "砝碼";
+    if (names.length === 1 && !hasW) {
+      const it = objs[0].item;
+      return objs.length > 1 ? `好幾個${it.e}${it.n}` : `${it.e}${it.n}`;
+    }
+    return side === "L" ? "左邊的東西" : "右邊的東西";
+  }
+  let freeSpeakTimer = null;
+  function freeMsg(L, R) {
+    let t, good = false;
+    if (!left.length && !right.length) {
+      t = pick([
+        "🥊 重量大對決！把東西放到兩邊，看誰比較重！",
+        "👀 誰比較重呢？放上去比比看就知道！",
+        "⚖️ 天平準備好了，快來放東西吧！",
+      ]);
+    } else if (!left.length || !right.length) {
+      const arr = left.length ? left : right, nm = sideName(arr, left.length ? "L" : "R");
+      t = pick([
+        `${nm}坐上天平了！另一邊要請誰來比賽呢？`,
+        `咚！${nm}把盤子壓下去了，另一邊空空的好寂寞 😢`,
+        `${nm}說：「有沒有人要來跟我比重量呀？」`,
+      ]);
+    } else {
+      const heavy = R > L ? sideName(right, "R") : sideName(left, "L");
+      const light = R > L ? sideName(left, "L") : sideName(right, "R");
+      const ratio = Math.max(L, R) / Math.min(L, R);
+      if (L === R) {
+        good = true; yay();
+        t = pick([
+          `🎉 平衡了！${sideName(left, "L")}和${sideName(right, "R")}一樣重，你好厲害！`,
+          "⚖️ 剛剛好！兩邊一樣重，紅色指針站直直的！",
+          "🌟 哇！一模一樣重，天平穩穩的不動了！",
+        ]);
+      } else if (ratio >= 5) {
+        t = pick([
+          `😲 哇！${heavy}比${light}重好多好多，${light}被翹到天上去了 🚀`,
+          `💪 ${heavy}是大力士！${light}一下子就被比下去了！`,
+          `🐘 ${heavy}好重，像大象一樣；${light}好輕，像羽毛一樣 🪶`,
+        ]);
+      } else if (ratio >= 1.2) {
+        t = pick([
+          `咚～${heavy}比較重，沉下去了！${light}輕輕的翹起來 🎈`,
+          `⬇️ ${heavy}贏了！${light}再加油一點點！`,
+          `${heavy}比較重喔！要不要幫${light}加一些砝碼？`,
+        ]);
+      } else {
+        t = pick([
+          `🤏 好接近喔！${heavy}只重了一點點，再加一點點試試看！`,
+          `差一點點就平衡了！${light}再加一個小砝碼看看？`,
+          `😮 快要一樣重了！${heavy}只比${light}重一咪咪！`,
+        ]);
+      }
+    }
+    setMsg(t, good);
+    // 小朋友停下來之後再唸，不會一直吵
+    clearTimeout(freeSpeakTimer);
+    freeSpeakTimer = setTimeout(() => say(t), 700);
   }
 
   // ---------- 操作 ----------
@@ -708,12 +771,12 @@
     $("challengeBar").style.display = m === "challenge" ? "" : "none";
     $("sidePick").style.display = m === "free" ? "" : "none";
     $("objTrayWrap").style.display = m === "free" ? "" : "none";
+    clearTimeout(freeSpeakTimer);
     if (m === "challenge") startItem();
     else {
       locked = false; clearTimeout(balanceTimer);
       left = []; right = [];
       buildWeightTray(); buildObjTray(); update();
-      say("自由秤秤看，比比看哪邊比較重！");
     }
   }
   $("modeChallenge").onclick = () => setMode("challenge");
