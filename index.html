@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>天平秤秤看</title>
+<style>
+  :root {
+    --bg: #fff8e7;
+    --card: #ffffff;
+    --ink: #4a3b2a;
+    --soft: #8a7660;
+    --accent: #ff8a3d;
+    --accent-dark: #e06a1c;
+    --green: #3fa34d;
+    --blue: #3b82c4;
+    --line: #f0dfc0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 12px 16px 32px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  h1 { font-size: 26px; margin: 6px 0; }
+  .stars { font-size: 20px; font-weight: bold; background: var(--card); border-radius: 999px; padding: 6px 14px; box-shadow: 0 2px 0 var(--line); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+  button {
+    font: inherit; border: none; cursor: pointer; border-radius: 14px;
+    padding: 10px 16px; font-size: 17px; font-weight: bold;
+    background: var(--card); color: var(--ink); box-shadow: 0 3px 0 var(--line);
+    transition: transform .08s;
+  }
+  button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+  button.on { background: var(--accent); color: #fff; box-shadow: 0 3px 0 var(--accent-dark); }
+  button:disabled { opacity: .45; cursor: default; }
+  .msg {
+    background: var(--card); border-radius: 18px; padding: 12px 16px; font-size: 20px;
+    font-weight: bold; text-align: center; min-height: 54px; box-shadow: 0 3px 0 var(--line);
+  }
+  .msg.good { background: #e3f6e5; color: #22702c; }
+  .stage { background: linear-gradient(#e8f4ff, #fdf6e8); border-radius: 22px; margin: 10px 0; overflow: hidden; box-shadow: 0 3px 0 var(--line); }
+  svg#scale { width: 100%; height: auto; display: block; touch-action: manipulation; }
+  .tray-title { font-weight: bold; color: var(--soft); margin: 10px 2px 4px; font-size: 16px; }
+  .tray { display: flex; flex-wrap: wrap; gap: 8px; }
+  .wbtn { display: flex; flex-direction: column; align-items: center; padding: 6px 10px 8px; min-width: 70px; }
+  .wbtn svg { height: 44px; width: 44px; }
+  .wbtn span { font-size: 15px; }
+  .obtn { font-size: 30px; padding: 6px 10px; line-height: 1.1; }
+  .obtn small { display: block; font-size: 13px; }
+  .side-pick button { font-size: 16px; }
+  .collect { display: flex; gap: 6px; flex-wrap: wrap; font-size: 28px; }
+  .collect span { width: 44px; height: 44px; display: grid; place-items: center; background: var(--card); border-radius: 12px; box-shadow: 0 2px 0 var(--line); }
+  .collect span.locked { filter: grayscale(1) opacity(.25); }
+  .collect span.now { outline: 3px solid var(--accent); }
+  .modal-bg { position: fixed; inset: 0; background: rgba(60,40,20,.45); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+  .modal-bg.show { display: flex; }
+  .modal { background: var(--card); border-radius: 24px; padding: 20px; max-width: 420px; width: 100%; text-align: center; animation: pop .25s ease-out; }
+  @keyframes pop { from { transform: scale(.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal .big { font-size: 80px; line-height: 1.1; }
+  .modal h2 { margin: 6px 0; font-size: 26px; }
+  .modal p { font-size: 19px; line-height: 1.6; margin: 8px 0; }
+  .sum { font-size: 22px; font-weight: bold; color: var(--blue); word-break: break-all; }
+  .choices { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+  .choices button { font-size: 22px; min-width: 100px; }
+  .choices button.wrong { background: #ffd9d9; animation: shake .3s; }
+  @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  .speak { background: #eef5ff; }
+  .tip { font-size: 15px; color: var(--soft); margin-top: 14px; line-height: 1.6; }
+  .confetti { position: fixed; top: -20px; font-size: 26px; pointer-events: none; z-index: 20; animation: fall 1.8s linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(540deg); } }
+  @media (max-width: 520px) {
+    h1 { font-size: 21px; }
+    .msg { font-size: 17px; }
+    button { font-size: 15px; padding: 8px 12px; }
+    .wbtn { min-width: 58px; }
+    .wbtn svg { height: 36px; width: 36px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>⚖️ 天平秤秤看</h1>
+    <div class="row" style="margin:0">
+      <button id="soundBtn" title="聲音開關">🔊</button>
+      <div class="stars" id="stars">⭐ 0</div>
+    </div>
+  </header>
+
+  <div class="row">
+    <button id="modeChallenge" class="on">🎯 秤重挑戰</button>
+    <button id="modeFree">🧪 自由秤秤看</button>
+  </div>
+
+  <div id="challengeBar">
+    <div class="row" id="levels"></div>
+    <div class="collect" id="collect"></div>
+  </div>
+
+  <div class="stage">
+    <svg id="scale" viewBox="0 0 600 380" aria-label="天平">
+      <defs>
+        <linearGradient id="gold" x1="0" x2="1">
+          <stop offset="0" stop-color="#c98a1c"/>
+          <stop offset=".45" stop-color="#ffd76a"/>
+          <stop offset="1" stop-color="#b87710"/>
+        </linearGradient>
+        <linearGradient id="wood" x1="0" x2="1">
+          <stop offset="0" stop-color="#a0612b"/>
+          <stop offset=".5" stop-color="#d08b4a"/>
+          <stop offset="1" stop-color="#8f5424"/>
+        </linearGradient>
+        <linearGradient id="panFill" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stop-color="#e7edf3"/>
+          <stop offset="1" stop-color="#9fb0c0"/>
+        </linearGradient>
+      </defs>
+      <!-- 底座和柱子 -->
+      <ellipse cx="300" cy="352" rx="120" ry="16" fill="#00000018"/>
+      <rect x="200" y="330" width="200" height="20" rx="10" fill="url(#wood)"/>
+      <rect x="290" y="125" width="20" height="210" rx="6" fill="url(#wood)"/>
+      <!-- 刻度 -->
+      <g id="dial">
+        <path d="M262 214 A40 40 0 0 1 338 214" fill="none" stroke="#8a7660" stroke-width="3"/>
+        <line x1="300" y1="172" x2="300" y2="186" stroke="#3fa34d" stroke-width="5" stroke-linecap="round"/>
+      </g>
+      <!-- 左右盤 -->
+      <g id="panL"></g>
+      <g id="panR"></g>
+      <!-- 橫桿 -->
+      <g id="beam">
+        <line x1="300" y1="120" x2="300" y2="200" stroke="#c0392b" stroke-width="4" stroke-linecap="round"/>
+        <rect x="112" y="113" width="376" height="14" rx="7" fill="url(#gold)" stroke="#9a6510" stroke-width="2"/>
+        <circle cx="120" cy="120" r="6" fill="#9a6510"/>
+        <circle cx="480" cy="120" r="6" fill="#9a6510"/>
+      </g>
+      <circle cx="300" cy="120" r="13" fill="url(#gold)" stroke="#9a6510" stroke-width="3"/>
+      <circle cx="300" cy="120" r="4" fill="#9a6510"/>
+      <text id="labelL" x="120" y="372" text-anchor="middle" font-size="18" fill="#8a7660" font-weight="bold">左邊</text>
+      <text id="labelR" x="480" y="372" text-anchor="middle" font-size="18" fill="#8a7660" font-weight="bold">右邊</text>
+    </svg>
+  </div>
+
+  <div class="msg" id="msg">把砝碼放到右邊的盤子，讓天平平衡吧！</div>
+
+  <div class="row side-pick" id="sidePick" style="display:none">
+    <span style="font-weight:bold">放到：</span>
+    <button id="pickL">⬅️ 左邊</button>
+    <button id="pickR" class="on">右邊 ➡️</button>
+  </div>
+
+  <div class="tray-title">🪙 砝碼（點一下放上去，點盤子裡的東西可以拿下來）</div>
+  <div class="tray" id="weightTray"></div>
+
+  <div id="objTrayWrap" style="display:none">
+    <div class="tray-title">🧺 東西</div>
+    <div class="tray" id="objTray"></div>
+  </div>
+
+  <div class="row" style="margin-top:12px">
+    <button id="clearBtn">🧹 全部拿下來</button>
+  </div>
+
+  <div class="tip">
+    💡 天平小祕密：<b>比較重的那一邊會往下沉</b>，比較輕的那一邊會翹起來。<br>
+    兩邊一樣重的時候，中間的紅色指針會對準綠色線，這就叫做「平衡」！
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+
+<script>
+(() => {
+  // ---------- 資料 ----------
+  const LEVELS = [
+    { name: "第 1 關 小東西", weights: [1, 2, 5, 10], items: [
+      { e: "✏️", n: "鉛筆", g: 6,  f: "一枝鉛筆很輕，大約 6 克。" },
+      { e: "🍪", n: "餅乾", g: 8,  f: "一片小餅乾大約 8 克。" },
+      { e: "🔑", n: "鑰匙", g: 12, f: "一把鑰匙大約 12 克。" },
+      { e: "🍓", n: "草莓", g: 15, f: "一顆大草莓大約 15 克，苗栗大湖的草莓很有名喔！" },
+      { e: "🧦", n: "襪子", g: 30, f: "一隻襪子大約 30 克。" },
+    ]},
+    { name: "第 2 關 水果和小動物", weights: [1, 2, 5, 10, 20, 50], items: [
+      { e: "🥚", n: "雞蛋", g: 60,  f: "一顆雞蛋大約 60 克。" },
+      { e: "🥕", n: "紅蘿蔔", g: 80, f: "一根紅蘿蔔大約 80 克。" },
+      { e: "🐹", n: "倉鼠", g: 110, f: "一隻倉鼠大約 110 克，比一顆蘋果還輕。" },
+      { e: "🦉", n: "領角鴞", g: 150, f: "領角鴞是台灣常見的小貓頭鷹，大約 150 克，比兩顆雞蛋重一點。" },
+      { e: "🍎", n: "蘋果", g: 200, f: "一顆蘋果大約 200 克。" },
+    ]},
+    { name: "第 3 關 大東西", weights: [5, 10, 20, 50, 100, 200, 500], items: [
+      { e: "📕", n: "故事書", g: 400,  f: "一本厚厚的故事書大約 400 克。" },
+      { e: "🦉", n: "褐林鴞", g: 900,  f: "褐林鴞是台灣體型很大的貓頭鷹，大約 900 克！" },
+      { e: "🥛", n: "一瓶牛奶", g: 1000, f: "一大瓶牛奶大約 1000 克。1000 克就是 1 公斤！" },
+      { e: "🍍", n: "鳳梨", g: 1300, f: "一顆鳳梨大約 1300 克，就是 1 公斤 300 克。" },
+      { e: "🐔", n: "母雞", g: 2000, f: "一隻母雞大約 2000 克，就是 2 公斤！" },
+    ]},
+  ];
+  const ALL_WEIGHTS = [1, 2, 5, 10, 20, 50, 100, 200, 500];
+  const ALL_ITEMS = LEVELS.flatMap(l => l.items);
+  const MAX_ON_PAN = 16;
+
+  // ---------- 狀態 ----------
+  const SAVE_KEY = "balance-game-v1";
+  let save = { stars: 0, done: {}, sound: true };
+  try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s) save = Object.assign(save, s); } catch (e) {}
+  const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
+
+  let mode = "challenge";      // challenge | free
+  let levelIdx = 0;
+  let itemIdx = 0;
+  let pickSide = "R";
+  let left = [], right = [];   // {type:'w', g} | {type:'o', item}
+  let locked = false;
+  let angle = 0, vel = 0, target = 0, animating = false;
+
+  const $ = id => document.getElementById(id);
+  const svgNS = "http://www.w3.org/2000/svg";
+
+  // ---------- 聲音 ----------
+  let actx;
+  function beep(freq, dur = 0.12, type = "sine", vol = 0.15, delay = 0) {
+    if (!save.sound) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const t = actx.currentTime + delay;
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(g).connect(actx.destination);
+      o.start(t); o.stop(t + dur);
+    } catch (e) {}
+  }
+  const clink = () => { beep(1400, 0.08, "triangle", 0.12); beep(2100, 0.1, "sine", 0.06, 0.03); };
+  const pop = () => beep(500, 0.08, "sine", 0.12);
+  const yay = () => [523, 659, 784, 1047].forEach((f, i) => beep(f, 0.22, "triangle", 0.15, i * 0.11));
+  const oops = () => { beep(300, 0.15, "square", 0.06); beep(220, 0.2, "square", 0.06, 0.12); };
+  function say(text) {
+    if (!save.sound || !window.speechSynthesis) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text.replace(/[^\p{L}\p{N}，。！？、 ]/gu, ""));
+      u.lang = "zh-TW"; u.rate = 0.95;
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+
+  // ---------- 畫砝碼 ----------
+  function weightSize(g) {
+    const i = ALL_WEIGHTS.indexOf(g);
+    return 20 + i * 3.2; // 寬度
+  }
+  function drawWeight(parent, g, x, y, w) {
+    // (x,y) 是砝碼底部中心
+    const h = w * 1.05;
+    const grp = document.createElementNS(svgNS, "g");
+    grp.setAttribute("transform", `translate(${x},${y})`);
+    grp.innerHTML = `
+      <rect x="${-w * 0.14}" y="${-h - w * 0.22}" width="${w * 0.28}" height="${w * 0.16}" rx="${w * 0.05}" fill="#b87710"/>
+      <circle cx="0" cy="${-h - w * 0.24}" r="${w * 0.17}" fill="url(#gold)" stroke="#9a6510" stroke-width="1.5"/>
+      <path d="M${-w * 0.4},${-h} L${w * 0.4},${-h} Q${w * 0.5},${-h} ${w * 0.5},${-h + 6} L${w * 0.5},-3 Q${w * 0.5},0 ${w * 0.45},0 L${-w * 0.45},0 Q${-w * 0.5},0 ${-w * 0.5},-3 L${-w * 0.5},${-h + 6} Q${-w * 0.5},${-h} ${-w * 0.4},${-h} Z"
+        fill="url(#gold)" stroke="#9a6510" stroke-width="1.5"/>
+      <text x="0" y="${-h / 2 + 5}" text-anchor="middle" font-size="${Math.max(10, w * 0.36)}" font-weight="bold" fill="#5a3a06">${g}</text>`;
+    parent.appendChild(grp);
+    return grp;
+  }
+  function weightIcon(g) {
+    const s = document.createElementNS(svgNS, "svg");
+    s.setAttribute("viewBox", "-26 -54 52 56");
+    const w = 18 + ALL_WEIGHTS.indexOf(g) * 3.2;
+    drawWeight(s, g, 0, 0, Math.min(w, 46));
+    return s;
+  }
+
+  // ---------- 盤子內容排列 ----------
+  function sizeOf(it) {
+    if (it.type === "w") { const w = weightSize(it.g); return { w: w + 2, h: w * 1.05 + w * 0.42 }; }
+    const big = mode === "challenge";
+    const s = big ? 70 : 46;
+    return { w: s, h: s };
+  }
+  function drawPan(gId, items, endX, endY) {
+    const g = $(gId);
+    g.setAttribute("transform", `translate(${endX},${endY})`);
+    g.innerHTML = `
+      <line x1="0" y1="0" x2="-78" y2="108" stroke="#7d8a96" stroke-width="2.5"/>
+      <line x1="0" y1="0" x2="78" y2="108" stroke="#7d8a96" stroke-width="2.5"/>
+      <line x1="0" y1="0" x2="0" y2="108" stroke="#7d8a96" stroke-width="2" opacity=".6"/>
+      <circle cx="0" cy="0" r="5" fill="#9a6510"/>`;
+    const content = document.createElementNS(svgNS, "g");
+    g.appendChild(content);
+    // 由下往上排
+    const maxW = 160;
+    const rows = []; let cur = [], curW = 0;
+    const sorted = items.map((it, i) => ({ it, i, ...sizeOf(it) }))
+      .sort((a, b) => (b.it.type === "o") - (a.it.type === "o") || b.w - a.w);
+    for (const s of sorted) {
+      if (curW + s.w > maxW && cur.length) { rows.push(cur); cur = []; curW = 0; }
+      cur.push(s); curW += s.w;
+    }
+    if (cur.length) rows.push(cur);
+    let baseY = 106;
+    for (const row of rows) {
+      const rw = row.reduce((a, s) => a + s.w, 0);
+      let x = -rw / 2;
+      let rh = 0;
+      for (const s of row) {
+        const cx = x + s.w / 2;
+        let el;
+        if (s.it.type === "w") {
+          el = drawWeight(content, s.it.g, cx, baseY, s.w - 2);
+        } else {
+          el = document.createElementNS(svgNS, "g");
+          el.innerHTML = `<text x="${cx}" y="${baseY - s.h * 0.12}" text-anchor="middle" font-size="${s.h * 0.92}">${s.it.item.e}</text>` +
+            (mode === "challenge" ? `<g transform="translate(${cx + s.w * 0.42},${baseY - s.h * 0.85})"><circle r="14" fill="#ff8a3d" stroke="#fff" stroke-width="3"/><text y="6" text-anchor="middle" font-size="17" font-weight="bold" fill="#fff">?</text></g>` : "");
+          content.appendChild(el);
+        }
+        el.style.cursor = "pointer";
+        el.addEventListener("click", ev => { ev.stopPropagation(); removeFrom(gId === "panL" ? "L" : "R", s.i); });
+        x += s.w; rh = Math.max(rh, s.h);
+      }
+      baseY -= rh - 2;
+    }
+    // 盤子
+    const bowl = document.createElementNS(svgNS, "path");
+    bowl.setAttribute("d", "M-90,106 L90,106 Q84,128 60,132 L-60,132 Q-84,128 -90,106 Z");
+    bowl.setAttribute("fill", "url(#panFill)");
+    bowl.setAttribute("stroke", "#6f7f8e");
+    bowl.setAttribute("stroke-width", "2.5");
+    g.insertBefore(bowl, content);
+  }
+
+  // ---------- 重量和傾斜 ----------
+  const massOf = arr => arr.reduce((a, it) => a + (it.type === "w" ? it.g : it.item.g), 0);
+  const wsum = arr => arr.filter(it => it.type === "w").reduce((a, it) => a + it.g, 0);
+
+  function computeTarget() {
+    const L = massOf(left), R = massOf(right);
+    const d = R - L;
+    if (d === 0) return 0;
+    const ratio = Math.min(1, Math.abs(d) / Math.max(L, R) * 2);
+    return Math.sign(d) * (6 + 12 * ratio);
+  }
+
+  function render() {
+    const a = angle * Math.PI / 180, arm = 180;
+    $("beam").setAttribute("transform", `rotate(${angle} 300 120)`);
+    drawPan("panL", left, 300 - arm * Math.cos(a), 120 - arm * Math.sin(a));
+    drawPan("panR", right, 300 + arm * Math.cos(a), 120 + arm * Math.sin(a));
+    const lw = wsum(left), rw = wsum(right);
+    $("labelL").textContent = mode === "free" && lw ? `砝碼 ${lw} 克` : "左邊";
+    $("labelR").textContent = rw ? `砝碼 ${rw} 克` : "右邊";
+  }
+
+  function tick() {
+    vel += (target - angle) * 0.06;
+    vel *= 0.86;
+    angle += vel;
+    if (Math.abs(target - angle) < 0.02 && Math.abs(vel) < 0.02) { angle = target; vel = 0; animating = false; render(); return; }
+    render();
+    requestAnimationFrame(tick);
+  }
+  function update() {
+    target = computeTarget();
+    if (!animating) { animating = true; requestAnimationFrame(tick); }
+    render();
+    updateMsg();
+  }
+
+  // ---------- 訊息 ----------
+  let balanceTimer = null;
+  function setMsg(t, good) { const m = $("msg"); m.textContent = t; m.classList.toggle("good", !!good); }
+  function updateMsg() {
+    clearTimeout(balanceTimer);
+    const L = massOf(left), R = massOf(right);
+    if (mode === "challenge") {
+      const item = curItem();
+      if (!right.length) return setMsg(`${item.e} ${item.n}有多重呢？把砝碼放到右邊的盤子試試看！`);
+      if (R < L) return setMsg("右邊翹起來了 ⬆️ 表示砝碼太輕，再加一些砝碼！");
+      if (R > L) return setMsg("右邊沉下去了 ⬇️ 表示砝碼太重，拿掉一些砝碼！");
+      setMsg("🎉 平衡了！兩邊一樣重！", true);
+      locked = true;
+      balanceTimer = setTimeout(askSum, 1100);
+    } else {
+      if (!left.length && !right.length) return setMsg("把東西和砝碼放到兩邊，比比看哪邊比較重！");
+      if (!left.length || !right.length) return setMsg(R > L ? "右邊比較重，所以右邊沉下去了！" : "左邊比較重，所以左邊沉下去了！");
+      if (L === R) { setMsg("🎉 平衡了！左右兩邊一樣重！", true); yay(); return; }
+      setMsg(R > L ? "右邊比較重 ⬇️ 左邊比較輕 ⬆️" : "左邊比較重 ⬇️ 右邊比較輕 ⬆️");
+    }
+  }
+
+  // ---------- 操作 ----------
+  function addTo(side, it) {
+    if (locked) return;
+    const arr = side === "L" ? left : right;
+    if (arr.length >= MAX_ON_PAN) { setMsg("盤子滿了！先拿掉一些吧。"); oops(); return; }
+    arr.push(it);
+    it.type === "w" ? clink() : pop();
+    update();
+  }
+  function removeFrom(side, i) {
+    if (locked) return;
+    const arr = side === "L" ? left : right;
+    if (mode === "challenge" && side === "L") return; // 挑戰的東西不能拿走
+    arr.splice(i, 1);
+    pop();
+    update();
+  }
+  $("clearBtn").onclick = () => {
+    if (locked) return;
+    right = [];
+    if (mode === "free") left = [];
+    pop(); update();
+  };
+
+  // ---------- 挑戰模式 ----------
+  const curLevel = () => LEVELS[levelIdx];
+  const curItem = () => curLevel().items[itemIdx];
+  const key = (l, i) => `${l}-${i}`;
+
+  function buildLevels() {
+    const box = $("levels"); box.innerHTML = "";
+    LEVELS.forEach((lv, i) => {
+      const n = lv.items.filter((_, j) => save.done[key(i, j)]).length;
+      const b = document.createElement("button");
+      b.textContent = `${lv.name}（${n}/${lv.items.length}）`;
+      b.className = i === levelIdx ? "on" : "";
+      b.onclick = () => { levelIdx = i; itemIdx = firstUndone(i); startItem(); };
+      box.appendChild(b);
+    });
+    const c = $("collect"); c.innerHTML = "";
+    curLevel().items.forEach((it, j) => {
+      const s = document.createElement("span");
+      const done = save.done[key(levelIdx, j)];
+      s.textContent = done ? it.e : "❔";
+      s.className = (done ? "" : "locked") + (j === itemIdx ? " now" : "");
+      s.style.cursor = "pointer";
+      s.title = done ? `${it.n} 大約 ${it.g} 克` : "還沒秤過";
+      s.onclick = () => { itemIdx = j; startItem(); };
+      c.appendChild(s);
+    });
+  }
+  const firstUndone = l => { const k = LEVELS[l].items.findIndex((_, j) => !save.done[key(l, j)]); return k < 0 ? 0 : k; };
+
+  function buildWeightTray() {
+    const tray = $("weightTray"); tray.innerHTML = "";
+    const ws = mode === "challenge" ? curLevel().weights : ALL_WEIGHTS;
+    ws.forEach(g => {
+      const b = document.createElement("button");
+      b.className = "wbtn";
+      b.appendChild(weightIcon(g));
+      const sp = document.createElement("span"); sp.textContent = `${g} 克`;
+      b.appendChild(sp);
+      b.onclick = () => addTo(mode === "challenge" ? "R" : pickSide, { type: "w", g });
+      tray.appendChild(b);
+    });
+  }
+  function buildObjTray() {
+    const tray = $("objTray"); tray.innerHTML = "";
+    ALL_ITEMS.forEach(item => {
+      const b = document.createElement("button");
+      b.className = "obtn";
+      b.innerHTML = `${item.e}<small>${item.n}</small>`;
+      b.onclick = () => addTo(pickSide, { type: "o", item });
+      tray.appendChild(b);
+    });
+  }
+
+  function startItem() {
+    locked = false; closeModal();
+    left = [{ type: "o", item: curItem() }];
+    right = [];
+    buildLevels(); buildWeightTray();
+    update();
+    const it = curItem();
+    say(`${it.n}有多重呢？`);
+  }
+
+  // ---------- 加法問題 ----------
+  function askSum() {
+    const it = curItem();
+    const ws = right.map(r => r.g).sort((a, b) => b - a);
+    const ans = ws.reduce((a, b) => a + b, 0);
+    const opts = new Set([ans]);
+    const steps = [ws[ws.length - 1], ...curLevel().weights.slice(0, 3)];
+    let guard = 0;
+    while (opts.size < 3 && guard++ < 50) {
+      const d = steps[Math.floor(Math.random() * steps.length)] * (Math.random() < .5 ? -1 : 1);
+      if (ans + d > 0) opts.add(ans + d);
+    }
+    const list = [...opts].sort(() => Math.random() - .5);
+    yay();
+    showModal(`
+      <div class="big">⚖️</div>
+      <h2>平衡了！</h2>
+      <p>右邊的砝碼加起來是幾克呢？</p>
+      <div class="sum">${ws.join(" + ")} = ？</div>
+      <div class="choices">${list.map(v => `<button data-v="${v}">${v} 克</button>`).join("")}</div>
+    `);
+    say("平衡了！右邊的砝碼加起來是幾克呢？");
+    $("modal").querySelectorAll(".choices button").forEach(b => b.onclick = () => {
+      if (+b.dataset.v === ans) reveal(it, ans);
+      else { b.classList.add("wrong"); b.disabled = true; oops(); say("再算一次看看！"); }
+    });
+  }
+
+  function reveal(it, ans) {
+    const k = key(levelIdx, itemIdx);
+    const first = !save.done[k];
+    if (first) { save.done[k] = true; save.stars++; persist(); }
+    updateStars();
+    yay(); confetti();
+    const nextIdx = curLevel().items.findIndex((_, j) => !save.done[key(levelIdx, j)]);
+    const levelDone = nextIdx < 0;
+    const nextLevel = levelDone && levelIdx < LEVELS.length - 1;
+    showModal(`
+      <div class="big">${it.e}</div>
+      <h2>${it.n} = ${ans} 克</h2>
+      <p>${it.f}</p>
+      ${first ? "<p>得到一顆 ⭐！</p>" : ""}
+      ${levelDone ? `<p>🏆 這一關的東西全部秤完了！</p>` : ""}
+      <div class="choices">
+        <button class="speak" id="speakBtn">🔊 再聽一次</button>
+        <button class="on" id="nextBtn">${nextLevel ? "下一關 ➡️" : levelDone ? "再玩一次 🔁" : "下一個 ➡️"}</button>
+      </div>
+    `);
+    const text = `答對了！${it.n}大約${ans}克。${it.f}`;
+    say(text);
+    $("speakBtn").onclick = () => say(it.f);
+    $("nextBtn").onclick = () => {
+      if (nextLevel) { levelIdx++; itemIdx = firstUndone(levelIdx); }
+      else if (levelDone) { itemIdx = (itemIdx + 1) % curLevel().items.length; }
+      else itemIdx = nextIdx;
+      startItem();
+    };
+  }
+
+  function showModal(html) { $("modal").innerHTML = html; $("modalBg").classList.add("show"); }
+  function closeModal() { $("modalBg").classList.remove("show"); }
+  function updateStars() { $("stars").textContent = `⭐ ${save.stars}`; }
+  function confetti() {
+    const pieces = ["🎉", "⭐", "✨", "🎊", "💛"];
+    for (let i = 0; i < 24; i++) {
+      const s = document.createElement("div");
+      s.className = "confetti";
+      s.textContent = pieces[i % pieces.length];
+      s.style.left = Math.random() * 100 + "vw";
+      s.style.animationDelay = Math.random() * 0.6 + "s";
+      document.body.appendChild(s);
+      setTimeout(() => s.remove(), 2600);
+    }
+  }
+
+  // ---------- 模式切換 ----------
+  function setMode(m) {
+    mode = m;
+    $("modeChallenge").classList.toggle("on", m === "challenge");
+    $("modeFree").classList.toggle("on", m === "free");
+    $("challengeBar").style.display = m === "challenge" ? "" : "none";
+    $("sidePick").style.display = m === "free" ? "" : "none";
+    $("objTrayWrap").style.display = m === "free" ? "" : "none";
+    if (m === "challenge") startItem();
+    else {
+      locked = false; clearTimeout(balanceTimer);
+      left = []; right = [];
+      buildWeightTray(); buildObjTray(); update();
+      say("自由秤秤看，比比看哪邊比較重！");
+    }
+  }
+  $("modeChallenge").onclick = () => setMode("challenge");
+  $("modeFree").onclick = () => setMode("free");
+  function setPick(s) { pickSide = s; $("pickL").classList.toggle("on", s === "L"); $("pickR").classList.toggle("on", s === "R"); }
+  $("pickL").onclick = () => setPick("L");
+  $("pickR").onclick = () => setPick("R");
+  // 直接點天平的左/右半邊也能選邊
+  $("scale").addEventListener("click", ev => {
+    if (mode !== "free") return;
+    const r = $("scale").getBoundingClientRect();
+    setPick(ev.clientX - r.left < r.width / 2 ? "L" : "R");
+  });
+
+  function updateSoundBtn() { $("soundBtn").textContent = save.sound ? "🔊" : "🔇"; }
+  $("soundBtn").onclick = () => { save.sound = !save.sound; persist(); updateSoundBtn(); if (!save.sound && window.speechSynthesis) speechSynthesis.cancel(); };
+
+  // ---------- 開始 ----------
+  updateSoundBtn(); updateStars();
+  levelIdx = 0; itemIdx = firstUndone(0);
+  setMode("challenge");
+})();
+</script>
+</body>
+</html>
