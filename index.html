@@ -8,7 +8,7 @@
   /* 注音粉圓（ButTaiwan/bpmfvs，Apache 2.0 / OFL），只保留網站用到的字 */
   @font-face {
     font-family: "BpmfHuninn";
-    src: url("fonts/bpmf-huninn-subset.woff2?v=3") format("woff2");
+    src: url("fonts/bpmf-huninn-subset.woff2?v=4") format("woff2");
     font-display: swap;
   }
   :root {
@@ -46,8 +46,9 @@
   button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
   button.on { background: var(--accent); color: #fff; box-shadow: 0 3px 0 var(--accent-dark); }
   button:disabled { opacity: .45; cursor: default; }
-  .lvbtn { font-family: sans-serif; font-size: 18px; padding: 6px 10px; line-height: 1.2; text-align: center; }
-  .lvbtn small { display: block; font-size: 12px; opacity: .8; }
+  .lvlabel { font-size: 18px; color: var(--soft); min-width: 64px; }
+  .lvbtn { font-size: 18px; padding: 6px 10px; line-height: 1.2; text-align: center; }
+  .lvbtn small { display: block; font-size: 12px; opacity: .8; font-family: sans-serif; }
   .lvtitle { font-size: 24px; margin: 4px 2px; }
   .lvdesc { font-size: 18px; color: var(--soft); margin: 0 2px 6px; }
   .msg {
@@ -75,7 +76,7 @@
   .modal .big { font-size: 72px; line-height: 1.1; }
   .modal h2 { margin: 6px 0; font-size: 28px; font-weight: normal; }
   .modal p { font-size: 21px; line-height: 1.7; margin: 8px 0; }
-  .sum { font-size: 24px; font-weight: bold; color: var(--blue); word-break: break-all; font-family: sans-serif; }
+  .sum { font-size: 24px; font-weight: bold; color: var(--blue); word-break: break-all; }
   .choices { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
   .choices button { font-size: 22px; min-width: 110px; }
   .choices button.wrong { background: #ffd9d9; animation: shake .3s; }
@@ -112,7 +113,8 @@
   </div>
 
   <div id="challengeBar">
-    <div class="row" id="levels"></div>
+    <div class="row" id="levelsCat"></div>
+    <div class="row" id="levelsCh"></div>
     <div class="lvtitle" id="lvTitle"></div>
     <div class="lvdesc" id="lvDesc"></div>
     <div class="collect" id="collect"></div>
@@ -174,6 +176,7 @@
 
   <div id="objTrayWrap" style="display:none">
     <div class="tray-title">🧺 東西</div>
+    <div class="row" id="objTabs"></div>
     <div class="tray" id="objTray"></div>
   </div>
 
@@ -215,40 +218,50 @@
 (() => {
   // ---------- 關卡資料（重量一律用「克」存） ----------
   // e 圖案, n 名字, g 一個的重量(克), c 數量, m 量詞, f 小知識
+  // cat: true 是「分類」關卡；其他是「挑戰」關卡
+  const G = [1, 2, 5, 10, 20, 50, 100, 200, 500];
   const LEVELS = [
-    { icon: "✏️", name: "第一關　小東西", desc: "用小砝碼秤秤看，這些東西都很輕喔！",
-      unit: "克", weights: [1, 2, 5, 10], items: [
-      { e: "✏️", n: "鉛筆", g: 6,  f: "一枝鉛筆很輕，大約六克。" },
-      { e: "🍪", n: "餅乾", g: 8,  f: "一片小餅乾大約八克。" },
-      { e: "🔑", n: "鑰匙", g: 12, f: "一把鑰匙大約十二克。" },
-      { e: "🍓", n: "草莓", g: 15, f: "一顆大草莓大約十五克，苗栗大湖的草莓很有名喔！" },
-      { e: "🧦", n: "襪子", g: 30, f: "一隻襪子大約三十克。" },
-    ]},
-    { icon: "🍎", name: "第二關　水果和小動物", desc: "砝碼變多了，試試看五十克的大砝碼！",
-      unit: "克", weights: [1, 2, 5, 10, 20, 50], items: [
-      { e: "🥚", n: "雞蛋", g: 60,  f: "一顆雞蛋大約六十克。" },
-      { e: "🥕", n: "紅蘿蔔", g: 80, f: "一根紅蘿蔔大約八十克。" },
-      { e: "🐹", n: "倉鼠", g: 110, f: "一隻倉鼠大約一百一十克，比一顆蘋果還輕。" },
-      { e: "🦉", n: "領角鴞", g: 150, f: "領角鴞是台灣常見的小貓頭鷹，大約一百五十克，比兩顆雞蛋重一點。" },
+    { id: "fruit", cat: true, icon: "🍎", short: "水果", name: "水果", desc: "香香甜甜的水果，哪一個最重呢？",
+      unit: "auto", weights: [...G, 1000], items: [
+      { e: "🍓", n: "草莓", g: 15,  f: "一顆大草莓大約十五克，苗栗大湖的草莓很有名喔！" },
+      { e: "🍌", n: "香蕉", g: 120, f: "一根香蕉大約一百二十克。" },
       { e: "🍎", n: "蘋果", g: 200, f: "一顆蘋果大約兩百克。" },
-    ]},
-    { icon: "🍍", name: "第三關　大東西", desc: "出現一百克、兩百克、五百克的大砝碼了！",
-      unit: "克", weights: [5, 10, 20, 50, 100, 200, 500], items: [
-      { e: "📕", n: "故事書", g: 400,  f: "一本厚厚的故事書大約四百克。" },
-      { e: "🥥", n: "椰子", g: 900,  f: "一顆椰子大約九百克，裡面有椰子水可以喝！" },
-      { e: "🥛", n: "一瓶牛奶", g: 1000, f: "一大瓶牛奶大約一千克。一千克就是一公斤！" },
+      { e: "🥭", n: "芒果", g: 380, f: "一顆愛文芒果大約三百八十克，夏天最好吃！" },
+      { e: "🥥", n: "椰子", g: 900, f: "一顆椰子大約九百克，裡面有椰子水可以喝！" },
       { e: "🍍", n: "鳳梨", g: 1300, f: "一顆鳳梨大約一千三百克，就是一公斤又三百克。" },
-      { e: "🐔", n: "母雞", g: 2000, f: "一隻母雞大約兩千克，就是兩公斤！" },
+      { e: "🍉", n: "小玉西瓜", g: 1750, f: "一顆小玉西瓜大約一千七百五十克。" },
     ]},
-    { icon: "🐾", name: "第四關　動物朋友", desc: "動物有大有小，來秤秤看牠們有多重！",
-      unit: "克", weights: [5, 10, 20, 50, 100, 200, 500], items: [
+    { id: "animal", cat: true, icon: "🐾", short: "動物", name: "動物", desc: "動物有大有小，來秤秤看牠們有多重！",
+      unit: "auto", weights: [5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000], items: [
       { e: "🐦", n: "麻雀", g: 25,  f: "一隻麻雀很輕，大約二十五克，比兩顆草莓還輕！" },
       { e: "🐸", n: "青蛙", g: 50,  f: "一隻青蛙大約五十克，牠很會跳喔！" },
+      { e: "🐹", n: "倉鼠", g: 110, f: "一隻倉鼠大約一百一十克，比一顆蘋果還輕。" },
+      { e: "🦉", n: "領角鴞", g: 150, f: "領角鴞是台灣常見的小貓頭鷹，大約一百五十克，比兩顆雞蛋重一點。" },
       { e: "🐿️", n: "松鼠", g: 350, f: "台灣常見的赤腹松鼠，大約三百五十克，最愛吃水果。" },
       { e: "🦔", n: "刺蝟", g: 500, f: "一隻刺蝟大約五百克，害怕的時候會縮成一顆刺球。" },
-      { e: "🐰", n: "兔子", g: 2000, f: "一隻大兔子大約兩千克，就是兩公斤！" },
+      { e: "🐔", n: "母雞", g: 2000, f: "一隻母雞大約兩千克，就是兩公斤！" },
+      { e: "🐱", n: "貓咪", g: 4000, f: "一隻大貓咪大約四公斤。" },
+      { e: "🐶", n: "小狗", g: 8000, f: "一隻柴犬大約八公斤。" },
     ]},
-    { icon: "🥚", name: "第五關　好幾個一起秤", desc: "盤子上有好幾個一樣的東西，加起來有多重呢？",
+    { id: "food", cat: true, icon: "🥕", short: "食物", name: "蔬菜和食物", desc: "每天吃的東西，有多重呢？",
+      unit: "auto", weights: G, items: [
+      { e: "🍪", n: "餅乾", g: 8,   f: "一片小餅乾大約八克。" },
+      { e: "🥚", n: "雞蛋", g: 60,  f: "一顆雞蛋大約六十克。" },
+      { e: "🥕", n: "紅蘿蔔", g: 80, f: "一根紅蘿蔔大約八十克。" },
+      { e: "🧃", n: "果汁", g: 250, f: "一瓶小果汁大約兩百五十克。" },
+      { e: "🍠", n: "地瓜", g: 270, f: "一條地瓜大約兩百七十克。" },
+      { e: "🥛", n: "一瓶牛奶", g: 1000, f: "一大瓶牛奶大約一千克。一千克就是一公斤！" },
+    ]},
+    { id: "stuff", cat: true, icon: "🎒", short: "用品", name: "學校和家裡的用品", desc: "書包裡、家裡常用的東西，秤秤看！",
+      unit: "auto", weights: [...G, 1000, 2000], items: [
+      { e: "✏️", n: "鉛筆", g: 6,  f: "一枝鉛筆很輕，大約六克。" },
+      { e: "🔑", n: "鑰匙", g: 12, f: "一把鑰匙大約十二克。" },
+      { e: "🧦", n: "襪子", g: 30, f: "一隻襪子大約三十克。" },
+      { e: "🎾", n: "網球", g: 58, f: "一顆網球大約五十八克。" },
+      { e: "📕", n: "故事書", g: 400, f: "一本厚厚的故事書大約四百克。" },
+      { e: "🎒", n: "書包", g: 3000, f: "裝滿課本的書包大約三公斤。" },
+    ]},
+    { id: "many", icon: "🥚", short: "好幾個", name: "挑戰：好幾個一起秤", desc: "盤子上有好幾個一樣的東西，加起來有多重呢？",
       unit: "克", weights: [1, 2, 5, 10, 20, 50, 100, 200], items: [
       { e: "✏️", n: "鉛筆", g: 6, c: 4, m: "枝", f: "一枝鉛筆六克，四枝就是六加六加六加六，二十四克。" },
       { e: "🍓", n: "草莓", g: 15, c: 5, m: "顆", f: "一顆草莓十五克，五顆就是七十五克。" },
@@ -256,39 +269,37 @@
       { e: "🍌", n: "香蕉", g: 120, c: 3, m: "根", f: "一根香蕉大約一百二十克，三根就是三百六十克。" },
       { e: "🍎", n: "蘋果", g: 200, c: 2, m: "顆", f: "一顆蘋果兩百克，兩顆就是四百克。" },
     ]},
-    { icon: "🧠", name: "第六關　砝碼高手", desc: "這一關砝碼的數量有限制，要先放大的砝碼，才能用最少的砝碼秤好！",
-      unit: "克", minimal: true, weights: [1, 2, 5, 10, 20, 50, 100, 200, 500], items: [
+    { id: "min", icon: "🧠", short: "砝碼高手", name: "挑戰：砝碼高手", desc: "砝碼的數量有限制，要先放大的砝碼，才能用最少的砝碼秤好！",
+      unit: "克", minimal: true, weights: G, items: [
       { e: "🎾", n: "網球", g: 58,  f: "一顆網球大約五十八克。" },
       { e: "🧃", n: "果汁", g: 250, f: "一瓶小果汁大約兩百五十克。" },
       { e: "🍠", n: "地瓜", g: 270, f: "一條地瓜大約兩百七十克。" },
-      { e: "🥭", n: "芒果", g: 380, f: "一顆愛文芒果大約三百八十克，夏天最好吃！" },
+      { e: "🥭", n: "芒果", g: 380, f: "一顆愛文芒果大約三百八十克。" },
       { e: "🍐", n: "水梨", g: 450, f: "一顆大水梨大約四百五十克。" },
       { e: "🍉", n: "小玉西瓜", g: 1750, f: "一顆小玉西瓜大約一千七百五十克。" },
     ]},
-    { icon: "🐶", name: "第七關　公斤大挑戰", desc: "東西變好重！要用「公斤」的鐵砝碼來秤。",
+    { id: "kg", icon: "🏋️", short: "公斤", name: "挑戰：公斤大挑戰", desc: "東西變好重！要用「公斤」的鐵砝碼來秤。",
       unit: "公斤", weights: [1000, 2000, 5000, 10000], items: [
-      { e: "🎒", n: "書包", g: 3000, f: "裝滿課本的書包大約三公斤。" },
-      { e: "🐱", n: "貓咪", g: 4000, f: "一隻大貓咪大約四公斤。" },
+      { e: "🎃", n: "南瓜", g: 3000, f: "一顆大南瓜大約三公斤。" },
+      { e: "🍚", n: "一袋米", g: 5000, f: "一袋米大約五公斤，可以煮好多碗飯！" },
       { e: "🍉", n: "大西瓜", g: 6000, f: "一顆大西瓜大約六公斤。" },
-      { e: "🐶", n: "小狗", g: 8000, f: "一隻柴犬大約八公斤。" },
+      { e: "🧳", n: "行李箱", g: 15000, f: "裝滿衣服的行李箱大約十五公斤。" },
       { e: "🧒", n: "小朋友", g: 22000, f: "七歲的小朋友大約二十二公斤。你有多重呢？" },
     ]},
   ];
   const ALL_WEIGHTS = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000];
   const FREE_WEIGHTS = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000];
-  const FREE_ITEMS = [];
-  LEVELS.forEach(l => l.items.forEach(it => { if (!it.c && !FREE_ITEMS.some(x => x.n === it.n)) FREE_ITEMS.push(it); }));
+  // 自由秤：每個分類一組，最後一組是「其他」
+  const FREE_GROUPS = LEVELS.filter(l => l.cat).map(l => ({ icon: l.icon, name: l.short, items: l.items }));
+  FREE_GROUPS.push({ icon: "📦", name: "其他", items: LEVELS.find(l => l.id === "kg").items.filter(it => !FREE_GROUPS.some(gr => gr.items.some(x => x.n === it.n))) });
   const MAX_ON_PAN = 16;
 
   // ---------- 狀態 ----------
   const SAVE_KEY = "balance-game-v1";
   let save = { stars: 0, done: {}, sound: true };
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s) save = Object.assign(save, s); } catch (e) {}
-  // 第三、四關換了內容：舊的完成紀錄不算
-  if (!save.v2) {
-    for (const k of Object.keys(save.done)) if (k === "2-1" || k.startsWith("3-")) { delete save.done[k]; save.stars = Math.max(0, save.stars - 1); }
-    save.v2 = true;
-  }
+  // 改成分類關卡：舊的紀錄（用關卡編號記）換算不了，重新開始
+  if (!save.v3) { save.done = {}; save.stars = 0; save.v3 = true; }
   const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
 
   let mode = "challenge";
@@ -306,7 +317,7 @@
   function wLabel(g) { return isKg(g) ? `${g / 1000} 公斤` : `${g} 克`; }
   function fmt(g, unit) {
     if (unit === "公斤") return `${g / 1000} 公斤`;
-    if (mode === "free" && g >= 1000) {
+    if ((mode === "free" || unit === "auto") && g >= 1000) {
       const kg = Math.floor(g / 1000), r = g % 1000;
       return `${kg} 公斤` + (r ? ` ${r} 克` : "");
     }
@@ -521,7 +532,7 @@
   const curLevel = () => LEVELS[levelIdx];
   const curItem = () => curLevel().items[itemIdx];
   const total = it => it.g * (it.c || 1);
-  const key = (l, i) => `${l}-${i}`;
+  const key = (l, i) => `${LEVELS[l].id}:${LEVELS[l].items[i].n}`;
   // 最少要幾個砝碼（由大到小拿，這套砝碼這樣拿就是最少）
   function limit() {
     let rest = total(curItem()), n = 0;
@@ -531,12 +542,15 @@
   const firstUndone = l => { const k = LEVELS[l].items.findIndex((_, j) => !save.done[key(l, j)]); return k < 0 ? 0 : k; };
 
   function buildLevels() {
-    const box = $("levels"); box.innerHTML = "";
+    const boxes = { cat: $("levelsCat"), ch: $("levelsCh") };
+    boxes.cat.innerHTML = '<span class="lvlabel">📂 分類</span>';
+    boxes.ch.innerHTML = '<span class="lvlabel">🏅 挑戰</span>';
     LEVELS.forEach((lv, i) => {
+      const box = lv.cat ? boxes.cat : boxes.ch;
       const n = lv.items.filter((_, j) => save.done[key(i, j)]).length;
       const b = document.createElement("button");
       b.className = "lvbtn" + (i === levelIdx ? " on" : "");
-      b.innerHTML = `${lv.icon} ${i + 1}<small>${n === lv.items.length ? "🏆" : `${n}/${lv.items.length}`}</small>`;
+      b.innerHTML = `${lv.icon} ${lv.short}<small>${n === lv.items.length ? "🏆" : `${n}/${lv.items.length}`}</small>`;
       b.title = lv.name;
       b.onclick = () => { levelIdx = i; itemIdx = firstUndone(i); startItem(); };
       box.appendChild(b);
@@ -568,9 +582,18 @@
       tray.appendChild(b);
     });
   }
+  let freeGroup = 0;
   function buildObjTray() {
+    const tabs = $("objTabs"); tabs.innerHTML = "";
+    FREE_GROUPS.forEach((gr, i) => {
+      const b = document.createElement("button");
+      b.className = "lvbtn" + (i === freeGroup ? " on" : "");
+      b.textContent = `${gr.icon} ${gr.name}`;
+      b.onclick = () => { freeGroup = i; buildObjTray(); };
+      tabs.appendChild(b);
+    });
     const tray = $("objTray"); tray.innerHTML = "";
-    FREE_ITEMS.forEach(item => {
+    FREE_GROUPS[freeGroup].items.forEach(item => {
       const b = document.createElement("button");
       b.className = "obtn";
       b.innerHTML = `${item.e}<small>${item.n}</small>`;
@@ -602,7 +625,7 @@
       if (ans + d > 0) opts.add(ans + d);
     }
     const list = [...opts].sort(() => Math.random() - .5);
-    const show = g => unit === "公斤" ? g / 1000 : g;
+    const show = g => unit === "公斤" ? g / 1000 : unit === "auto" ? wLabel(g) : g;
     yay();
     showModal(`
       <div class="big">⚖️</div>
