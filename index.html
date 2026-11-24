@@ -8,7 +8,7 @@
   /* 注音粉圓（ButTaiwan/bpmfvs，Apache 2.0 / OFL），只保留網站用到的字 */
   @font-face {
     font-family: "BpmfHuninn";
-    src: url("fonts/bpmf-huninn-subset.woff2?v=2") format("woff2");
+    src: url("fonts/bpmf-huninn-subset.woff2?v=3") format("woff2");
     font-display: swap;
   }
   :root {
@@ -194,7 +194,7 @@
 // 注音破音字：在字後面加「異體選擇符」，讓注音字型顯示輕聲（例如 鑰匙 的 匙 唸 ˙ㄕ）
 (() => {
   const NEUTRAL = "\u{E01E1}";
-  const RULES = ["鑰匙", "盤子", "襪子", "東西"].map(w =>
+  const RULES = ["鑰匙", "盤子", "襪子", "東西", "椰子"].map(w =>
     [new RegExp(`(${w[0]})(${w[1]})(?![\\u{E01E0}-\\u{E01EF}])`, "gu"), `$1$2${NEUTRAL}`]);
   const fix = node => {
     if (node.nodeType === 3) {
@@ -235,19 +235,18 @@
     { icon: "🍍", name: "第三關　大東西", desc: "出現一百克、兩百克、五百克的大砝碼了！",
       unit: "克", weights: [5, 10, 20, 50, 100, 200, 500], items: [
       { e: "📕", n: "故事書", g: 400,  f: "一本厚厚的故事書大約四百克。" },
-      { e: "🦉", n: "褐林鴞", g: 900,  f: "褐林鴞是台灣體型很大的貓頭鷹，大約九百克！" },
+      { e: "🥥", n: "椰子", g: 900,  f: "一顆椰子大約九百克，裡面有椰子水可以喝！" },
       { e: "🥛", n: "一瓶牛奶", g: 1000, f: "一大瓶牛奶大約一千克。一千克就是一公斤！" },
       { e: "🍍", n: "鳳梨", g: 1300, f: "一顆鳳梨大約一千三百克，就是一公斤又三百克。" },
       { e: "🐔", n: "母雞", g: 2000, f: "一隻母雞大約兩千克，就是兩公斤！" },
     ]},
-    { icon: "🦉", name: "第四關　貓頭鷹家族", desc: "台灣的貓頭鷹有大有小，來秤秤看牠們有多重！",
+    { icon: "🐾", name: "第四關　動物朋友", desc: "動物有大有小，來秤秤看牠們有多重！",
       unit: "克", weights: [5, 10, 20, 50, 100, 200, 500], items: [
-      { e: "🦉", n: "鵂鶹", g: 60,  f: "鵂鶹是台灣最小的貓頭鷹，大約六十克，跟一顆雞蛋差不多重！" },
-      { e: "🦉", n: "黃嘴角鴞", g: 80,  f: "黃嘴角鴞住在山上的森林裡，大約八十克。" },
-      { e: "🦉", n: "蘭嶼角鴞", g: 100, f: "蘭嶼角鴞住在蘭嶼島上，大約一百克，叫聲像「嘟、嘟嘟」。" },
-      { e: "🦉", n: "短耳鴞", g: 350, f: "短耳鴞冬天才會飛來台灣，喜歡住在草地上，大約三百五十克。" },
-      { e: "🦉", n: "灰林鴞", g: 450, f: "灰林鴞住在高高的山上，大約四百五十克。" },
-      { e: "🦉", n: "黃魚鴞", g: 2500, f: "黃魚鴞是台灣最大的貓頭鷹之一，會抓溪裡的魚來吃，大約兩千五百克！" },
+      { e: "🐦", n: "麻雀", g: 25,  f: "一隻麻雀很輕，大約二十五克，比兩顆草莓還輕！" },
+      { e: "🐸", n: "青蛙", g: 50,  f: "一隻青蛙大約五十克，牠很會跳喔！" },
+      { e: "🐿️", n: "松鼠", g: 350, f: "台灣常見的赤腹松鼠，大約三百五十克，最愛吃水果。" },
+      { e: "🦔", n: "刺蝟", g: 500, f: "一隻刺蝟大約五百克，害怕的時候會縮成一顆刺球。" },
+      { e: "🐰", n: "兔子", g: 2000, f: "一隻大兔子大約兩千克，就是兩公斤！" },
     ]},
     { icon: "🥚", name: "第五關　好幾個一起秤", desc: "盤子上有好幾個一樣的東西，加起來有多重呢？",
       unit: "克", weights: [1, 2, 5, 10, 20, 50, 100, 200], items: [
@@ -285,6 +284,11 @@
   const SAVE_KEY = "balance-game-v1";
   let save = { stars: 0, done: {}, sound: true };
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s) save = Object.assign(save, s); } catch (e) {}
+  // 第三、四關換了內容：舊的完成紀錄不算
+  if (!save.v2) {
+    for (const k of Object.keys(save.done)) if (k === "2-1" || k.startsWith("3-")) { delete save.done[k]; save.stars = Math.max(0, save.stars - 1); }
+    save.v2 = true;
+  }
   const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
 
   let mode = "challenge";
